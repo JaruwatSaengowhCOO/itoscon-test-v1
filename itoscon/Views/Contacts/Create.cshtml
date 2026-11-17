@@ -1,6 +1,7 @@
 @model itoscon.Models.Contact
 @{
     ViewData["Title"] = "เพิ่มข้อมูล";
+    ViewData["ShowPassword"] = true;
 }
 
 <h1 class="h3 mb-3">เพิ่มข้อมูลผู้ติดต่อ</h1>
@@ -9,7 +10,7 @@
     <partial name="_ContactFields" model="Model" />
     <div class="mt-4">
         <button type="submit" class="btn btn-primary">บันทึก</button>
-        <a asp-action="Index" class="btn btn-secondary">ยกเลิก</a>
+        <a asp-controller="Account" asp-action="Login" class="btn btn-secondary">ยกเลิก</a>
     </div>
 </form>
 

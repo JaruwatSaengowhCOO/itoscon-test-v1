@@ -26,4 +26,10 @@ public class Contact
     [EmailAddress(ErrorMessage = "รูปแบบอีเมลไม่ถูกต้อง")]
     [StringLength(200)]
     public string Email { get; set; } = string.Empty;
+
+    [Display(Name = "รหัสผ่าน")]
+    [Required(ErrorMessage = "กรุณากรอกรหัสผ่าน")]
+    [DataType(DataType.Password)]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")]
+    public string Password { get; set; } = string.Empty;
 }
