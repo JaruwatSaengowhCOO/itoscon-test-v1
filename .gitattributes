@@ -1,0 +1,9 @@
+# ให้ line ending เป็นมาตรฐานเดียวกัน ไม่ว่าเพื่อนจะใช้ Windows หรือ Mac
+* text=auto
+*.cs      text diff=csharp
+*.cshtml  text
+*.csproj  text
+*.slnx    text
+*.json    text
+*.ico     binary
+*.png     binary

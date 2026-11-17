@@ -1,0 +1,18 @@
+@model itoscon.Models.Contact
+@{
+    ViewData["Title"] = "เพิ่มข้อมูล";
+}
+
+<h1 class="h3 mb-3">เพิ่มข้อมูลผู้ติดต่อ</h1>
+
+<form asp-action="Create" method="post" class="card card-body" style="max-width: 720px">
+    <partial name="_ContactFields" model="Model" />
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">บันทึก</button>
+        <a asp-action="Index" class="btn btn-secondary">ยกเลิก</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

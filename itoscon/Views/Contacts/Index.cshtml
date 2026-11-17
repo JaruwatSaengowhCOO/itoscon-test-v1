@@ -1,0 +1,72 @@
+@model IEnumerable<itoscon.Models.Contact>
+@{
+    ViewData["Title"] = "รายชื่อผู้ติดต่อ";
+    var search = ViewData["Search"] as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">รายชื่อผู้ติดต่อ</h1>
+    <a asp-action="Create" class="btn btn-primary">+ เพิ่มข้อมูล</a>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="ปิด"></button>
+    </div>
+}
+
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-sm-8 col-md-6">
+        <input type="search" name="search" value="@search" class="form-control"
+               placeholder="ค้นหาชื่อ นามสกุล เบอร์ หรืออีเมล" aria-label="ค้นหา" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">ค้นหา</button>
+        @if (!string.IsNullOrEmpty(search))
+        {
+            <a asp-action="Index" class="btn btn-link">ล้าง</a>
+        }
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>@Html.DisplayNameFor(m => m.FirstName)</th>
+                <th>@Html.DisplayNameFor(m => m.LastName)</th>
+                <th>@Html.DisplayNameFor(m => m.Phone)</th>
+                <th>@Html.DisplayNameFor(m => m.Email)</th>
+                <th class="text-end">จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        @(string.IsNullOrEmpty(search) ? "ยังไม่มีข้อมูล กด \"+ เพิ่มข้อมูล\" เพื่อเริ่มต้น" : "ไม่พบข้อมูลที่ค้นหา")
+                    </td>
+                </tr>
+            }
+            @{ var i = 1; }
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@(i++)</td>
+                    <td>@c.FirstName</td>
+                    <td>@c.LastName</td>
+                    <td>@c.Phone</td>
+                    <td><a href="mailto:@c.Email">@c.Email</a></td>
+                    <td class="text-end text-nowrap">
+                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-warning">แก้ไข</a>
+                        <a asp-action="Delete" asp-route-id="@c.Id" class="btn btn-sm btn-outline-danger">ลบ</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,19 @@
+@model itoscon.Models.Contact
+@{
+    ViewData["Title"] = "แก้ไขข้อมูล";
+}
+
+<h1 class="h3 mb-3">แก้ไขข้อมูลผู้ติดต่อ</h1>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="card card-body" style="max-width: 720px">
+    <input type="hidden" asp-for="Id" />
+    <partial name="_ContactFields" model="Model" />
+    <div class="mt-4">
+        <button type="submit" class="btn btn-warning">บันทึกการแก้ไข</button>
+        <a asp-action="Index" class="btn btn-secondary">ยกเลิก</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
