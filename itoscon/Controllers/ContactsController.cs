@@ -32,14 +32,14 @@ public class ContactsController(AppDbContext db) : Controller
         return View(await query.OrderBy(c => c.Id).ToListAsync());
     }
 
-    // GET: /Contacts/Create  — เพิ่มผู้ใช้ใหม่ (เฉพาะคนในระบบที่ login แล้ว)
+    // GET: /Contacts/Create  — เพิ่มผู้ใช้ใหม่ 
     public IActionResult Create()
     {
         ViewData["ShowPassword"] = true;
         return View(new Contact());
     }
 
-    // POST: /Contacts/Create  — INSERT (เฉพาะคนในระบบ)
+    // POST: /Contacts/Create  — INSERT 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("FirstName,LastName,Phone,Email,Password")] Contact contact)
