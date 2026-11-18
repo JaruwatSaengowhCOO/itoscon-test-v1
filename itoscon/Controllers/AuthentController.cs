@@ -5,16 +5,17 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace itoscon.Controllers;
 
-public class AccountController(AppDbContext db) : Controller
+public class AuthentController(AppDbContext db) : Controller
 {
     private readonly PasswordHasher<Contact> _hasher = new();
 
-    // GET: /Account/Login  — หน้าแรกของระบบ
+    // GET: /Authent/Login  — หน้าแรกของระบบ
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -26,10 +27,11 @@ public class AccountController(AppDbContext db) : Controller
         return View(new LoginViewModel());
     }
 
-    // POST: /Account/Login
+    // POST: /Authent/Login
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
@@ -60,7 +62,7 @@ public class AccountController(AppDbContext db) : Controller
         return RedirectToAction("Index", "Contacts");
     }
 
-    // POST: /Account/Logout
+    // POST: /Authent/Logout
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]

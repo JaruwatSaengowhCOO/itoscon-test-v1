@@ -27,6 +27,7 @@ public class Contact
     [StringLength(200)]
     public string Email { get; set; } = string.Empty;
 
+    // เก็บเป็น hash เสมอ (ดู PasswordHasher ใน ContactsController / AuthentController)
     [Display(Name = "รหัสผ่าน")]
     [Required(ErrorMessage = "กรุณากรอกรหัสผ่าน")]
     [DataType(DataType.Password)]

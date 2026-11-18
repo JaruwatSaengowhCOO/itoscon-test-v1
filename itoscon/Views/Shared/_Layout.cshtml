@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - itoscon</title>
-    <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/itoscon.styles.css" asp-append-version="true" />
@@ -32,7 +31,7 @@
                         {
                             <li class="nav-item"><span class="nav-link text-muted">@User.Identity.Name</span></li>
                             <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                <form asp-controller="Authent" asp-action="Logout" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-link nav-link text-dark">ออกจากระบบ</button>
                                 </form>
                             </li>
@@ -40,7 +39,7 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">เข้าสู่ระบบ</a>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Authent" asp-action="Login">เข้าสู่ระบบ</a>
                             </li>
                         }
                     </ul>

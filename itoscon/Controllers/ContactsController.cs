@@ -2,6 +2,7 @@ using itoscon.Data;
 using itoscon.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,16 +32,14 @@ public class ContactsController(AppDbContext db) : Controller
         return View(await query.OrderBy(c => c.Id).ToListAsync());
     }
 
-    // GET: /Contacts/Create  — สร้าง contact ใหม่ (พร้อมรหัสผ่าน) ไม่ต้อง login
-    [AllowAnonymous]
+    // GET: /Contacts/Create  — เพิ่มผู้ใช้ใหม่ (เฉพาะคนในระบบที่ login แล้ว)
     public IActionResult Create()
     {
         ViewData["ShowPassword"] = true;
         return View(new Contact());
     }
 
-    // POST: /Contacts/Create  — INSERT
-    [AllowAnonymous]
+    // POST: /Contacts/Create  — INSERT (เฉพาะคนในระบบ)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("FirstName,LastName,Phone,Email,Password")] Contact contact)
@@ -59,33 +58,53 @@ public class ContactsController(AppDbContext db) : Controller
         db.Contacts.Add(contact);
         await db.SaveChangesAsync();
 
-        TempData["Message"] = $"สร้างบัญชี {contact.FirstName} {contact.LastName} เรียบร้อยแล้ว กรุณาเข้าสู่ระบบ";
-        return RedirectToAction("Login", "Account");
+        TempData["Message"] = $"เพิ่มผู้ใช้ {contact.FirstName} {contact.LastName} เรียบร้อยแล้ว";
+        return RedirectToAction(nameof(Index));
     }
 
     // GET: /Contacts/Edit/5
     public async Task<IActionResult> Edit(int id)
     {
         var contact = await db.Contacts.FindAsync(id);
-        return contact is null ? NotFound() : View(contact);
+        if (contact is null) return NotFound();
+
+        contact.Password = string.Empty; // ไม่ส่ง hash ออกไปที่หน้าเว็บ
+        ViewData["ShowPassword"] = true;
+        return View(contact);
     }
 
-    // POST: /Contacts/Edit/5  — UPDATE (ไม่แก้รหัสผ่านในหน้านี้)
+    // POST: /Contacts/Edit/5  — UPDATE (เปลี่ยนรหัสผ่านได้ถ้ากรอกช่องรหัสผ่านใหม่ ถ้าเว้นว่างคือไม่เปลี่ยน)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,Phone,Email")] Contact input)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,Phone,Email,Password")] Contact input)
     {
-        ModelState.Remove(nameof(Contact.Password));
+        ViewData["ShowPassword"] = true;
         if (id != input.Id) return BadRequest();
+
+        // รหัสผ่านเป็นทางเลือกในหน้านี้ จึงไม่ใช้ Required ของ model
+        ModelState.Remove(nameof(Contact.Password));
+        var newPassword = input.Password;
+        if (!string.IsNullOrEmpty(newPassword) && (newPassword.Length < 6 || newPassword.Length > 100))
+            ModelState.AddModelError(nameof(Contact.Password), "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+
         if (!ModelState.IsValid) return View(input);
 
         var contact = await db.Contacts.FindAsync(id);
         if (contact is null) return NotFound();
 
+        input.Email = input.Email.Trim();
+        if (await db.Contacts.AnyAsync(c => c.Email == input.Email && c.Id != id))
+        {
+            ModelState.AddModelError(nameof(Contact.Email), "อีเมลนี้ถูกใช้แล้ว");
+            return View(input);
+        }
+
         contact.FirstName = input.FirstName;
         contact.LastName = input.LastName;
         contact.Phone = input.Phone;
         contact.Email = input.Email;
+        if (!string.IsNullOrEmpty(newPassword))
+            contact.Password = _hasher.HashPassword(contact, newPassword);
         await db.SaveChangesAsync();
 
         TempData["Message"] = $"แก้ไขข้อมูล {contact.FirstName} {contact.LastName} เรียบร้อยแล้ว";
@@ -104,6 +123,13 @@ public class ContactsController(AppDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        // ห้ามลบบัญชีที่ login อยู่ (ป้องกันการลบตัวเอง)
+        if (id.ToString() == User.FindFirstValue(ClaimTypes.NameIdentifier))
+        {
+            TempData["Error"] = "ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้";
+            return RedirectToAction(nameof(Index));
+        }
+
         var contact = await db.Contacts.FindAsync(id);
         if (contact is not null)
         {

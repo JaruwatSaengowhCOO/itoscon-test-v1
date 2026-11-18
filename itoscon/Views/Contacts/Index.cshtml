@@ -17,6 +17,14 @@
     </div>
 }
 
+@if (TempData["Error"] is string errorMessage)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="ปิด"></button>
+    </div>
+}
+
 <form asp-action="Index" method="get" class="row g-2 mb-3">
     <div class="col-sm-8 col-md-6">
         <input type="search" name="search" value="@search" class="form-control"
@@ -52,7 +60,9 @@
                     </td>
                 </tr>
             }
-            @{ var i = 1; }
+            @{
+                var i = 1;
+            }
             @foreach (var c in Model)
             {
                 <tr>
