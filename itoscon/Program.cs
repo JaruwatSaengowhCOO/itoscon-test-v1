@@ -34,7 +34,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 
-// Rate limit: จำกัดการพยายาม login ไม่เกิน 5 ครั้งต่อ IP ในช่วง 15 นาที
+// Rate limit: จำกัดการพยายาม login ไม่เกิน 20 ครั้งต่อ IP ในช่วง 15 นาที
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
