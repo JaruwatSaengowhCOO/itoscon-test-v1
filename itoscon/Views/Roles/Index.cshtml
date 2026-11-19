@@ -1,0 +1,114 @@
+﻿@model itoscon.Models.OrganizationViewModel
+@inject itoscon.Services.IStaticText T
+@{
+    ViewData["Title"] = T["roles.title"];
+    var unlinked = Model.SubRoles.Where(s => s.RoleId == null).ToList();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <h1 class="h3 mb-0">@T["roles.title"]</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="CreateRole" class="btn btn-primary">@T["roles.btn.addRole"]</a>
+        <a asp-action="CreateSubRole" class="btn btn-outline-primary">@T["roles.btn.addSubRole"]</a>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
+    </div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="small text-muted">@T["roles.stat.roles"]</div>
+                <div class="fs-3 fw-semibold">@Model.Roles.Count</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="small text-muted">@T["roles.stat.subRoles"]</div>
+                <div class="fs-3 fw-semibold">@Model.SubRoles.Count</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ตำแหน่ง พร้อมความสัมพันธ์ที่ผูกอยู่ -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">@T["roles.section.roles"]</div>
+            <div class="card-body">
+                @if (!Model.Roles.Any())
+                {
+                    <div class="text-center text-muted py-4">
+                        <p class="mb-2">@T["roles.empty.roles"]</p>
+                        <a asp-action="CreateRole" class="btn btn-sm btn-primary">@T["roles.btn.addFirstRole"]</a>
+                    </div>
+                }
+
+                @foreach (var role in Model.Roles)
+                {
+                    var linked = Model.SubRoles.Where(s => s.RoleId == role.Id).ToList();
+                    <div class="border rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold">@role.Name</span>
+                            <span class="badge rounded-pill text-bg-light border">@string.Format(T["roles.linkedCount"], linked.Count)</span>
+                        </div>
+                        @if (linked.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                @foreach (var sub in linked)
+                                {
+                                    <span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2">@sub.Name</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small text-muted mt-2">@T["roles.empty.linked"]</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ความสัมพันธ์ที่ยังไม่ผูกตำแหน่ง -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">@T["roles.section.unlinked"]</div>
+            <div class="card-body">
+                @if (!unlinked.Any())
+                {
+                    <p class="small text-muted mb-0">@T["roles.allLinked"]</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var sub in unlinked)
+                        {
+                            <li class="list-group-item px-0 d-flex align-items-center">
+                                <span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2">@sub.Name</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>

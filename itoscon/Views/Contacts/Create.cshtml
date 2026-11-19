@@ -1,16 +1,17 @@
 @model itoscon.Models.Contact
+@inject itoscon.Services.IStaticText T
 @{
-    ViewData["Title"] = "เพิ่มข้อมูล";
+    ViewData["Title"] = T["contacts.create"];
     ViewData["ShowPassword"] = true;
 }
 
-<h1 class="h3 mb-3">เพิ่มข้อมูลผู้ติดต่อ</h1>
+<h1 class="h3 mb-3">@T["contacts.create"]</h1>
 
-<form asp-action="Create" method="post" class="card card-body" style="max-width: 720px">
+<form asp-action="Create" method="post" class="card card-body shadow-sm" style="max-width: 760px">
     <partial name="_ContactFields" model="Model" />
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">บันทึก</button>
-        <a asp-controller="Authent" asp-action="Index" class="btn btn-secondary">ยกเลิก</a>
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@T["btn.save"]</button>
+        <a asp-action="Index" class="btn btn-secondary">@T["btn.cancel"]</a>
     </div>
 </form>
 

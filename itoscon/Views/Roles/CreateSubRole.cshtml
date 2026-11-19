@@ -1,0 +1,31 @@
+﻿@model itoscon.Models.SubRole
+@inject itoscon.Services.IStaticText T
+@{
+    ViewData["Title"] = T["roles.addSubRole"];
+}
+
+<h1 class="h3 mb-3">@T["roles.addSubRole"]</h1>
+
+<form asp-action="CreateSubRole" method="post" class="card card-body shadow-sm" style="max-width: 560px">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+    <div class="mb-3">
+        <label class="form-label" for="Name">@T["field.subRoleName"]</label>
+        <input asp-for="Name" class="form-control" placeholder="@T["field.subRolePlaceholder"]" autofocus />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="RoleId">@T["field.linkedRole"] <small class="text-muted">@T["field.optional"]</small></label>
+        <select asp-for="RoleId" class="form-select" asp-items="@((SelectList)ViewData["Roles"]!)">
+            <option value="">@T["option.notLinked"]</option>
+        </select>
+        <span asp-validation-for="RoleId" class="text-danger small"></span>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@T["btn.save"]</button>
+        <a asp-action="Index" class="btn btn-secondary">@T["btn.cancel"]</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

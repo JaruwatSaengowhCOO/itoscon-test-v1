@@ -1,14 +1,20 @@
 using itoscon.Data;
+using itoscon.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization()
+    .AddDataAnnotationsLocalization();
 // ให้ Razor แสดงภาษาไทยตรง ๆ แทนการแปลงเป็น &#xE01; ...
 builder.Services.Configure<Microsoft.Extensions.WebEncoders.WebEncoderOptions>(o =>
     o.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.All));
@@ -34,7 +40,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 
-// Rate limit: จำกัดการพยายาม login ไม่เกิน 20 ครั้งต่อ IP ในช่วง 15 นาที
+// Rate limit: จำกัดการพยายาม login ไม่เกิน 5 ครั้งต่อ IP ในช่วง 15 นาที
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -43,19 +49,21 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 20,
+                PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
     options.OnRejected = async (context, token) =>
     {
+        var t = context.HttpContext.RequestServices.GetRequiredService<itoscon.Services.IStaticText>();
         context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
-        await context.HttpContext.Response.WriteAsync(
-            "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอ 15 นาทีแล้วลองใหม่", token);
+        await context.HttpContext.Response.WriteAsync(t["err.tooManyLogin"], token);
     };
 });
 
+builder.Services.AddSingleton<itoscon.Services.IStaticText, itoscon.Services.StaticText>();
 var app = builder.Build();
+Loc.Current = app.Services.GetRequiredService<IStaticText>();
 
 // สร้างฐานข้อมูล, เพิ่มคอลัมน์ Password ถ้ายังไม่มี, และสร้างผู้ดูแลเริ่มต้น (ถ้าตั้งค่าไว้)
 using (var scope = app.Services.CreateScope())
@@ -75,6 +83,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+var supportedCultures = new[] { new CultureInfo("th-TH"), new CultureInfo("en-US") };
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("th-TH"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+});
 
 app.UseRateLimiter();
 app.UseAuthentication();

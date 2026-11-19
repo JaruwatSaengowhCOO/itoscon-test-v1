@@ -1,5 +1,6 @@
 ﻿using itoscon.Data;
 using itoscon.Models;
+using itoscon.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -11,11 +12,11 @@ using System.Security.Claims;
 
 namespace itoscon.Controllers;
 
-public class AuthentController(AppDbContext db) : Controller
+public class AuthentController(AppDbContext db, IStaticText t) : Controller
 {
     private readonly PasswordHasher<Contact> _hasher = new();
 
-    // GET: /Authent/Login  — หน้าแรกของระบบ
+    // GET: /Authent/Login
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -38,12 +39,12 @@ public class AuthentController(AppDbContext db) : Controller
         if (!ModelState.IsValid) return View(model);
 
         var email = model.Email.Trim();
-        var contact = await db.Contacts.FirstOrDefaultAsync(c => c.Email == email);
+        var contact = await db.Contacts.FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower());
 
         if (contact is null || string.IsNullOrEmpty(contact.Password) ||
             _hasher.VerifyHashedPassword(contact, contact.Password, model.Password) == PasswordVerificationResult.Failed)
         {
-            ModelState.AddModelError(string.Empty, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            ModelState.AddModelError(string.Empty, t["login.invalid"]);
             return View(model);
         }
 
@@ -69,7 +70,7 @@ public class AuthentController(AppDbContext db) : Controller
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        TempData["Message"] = "ออกจากระบบเรียบร้อยแล้ว";
+        TempData["Message"] = t["msg.loggedOut"];
         return RedirectToAction(nameof(Login));
     }
 }

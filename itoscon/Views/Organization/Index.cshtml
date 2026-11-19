@@ -1,0 +1,270 @@
+﻿@model itoscon.Models.OrganizationViewModel
+@inject itoscon.Services.IStaticText T
+@{
+    ViewData["Title"] = T["org.title"];
+    var deptItems = Model.Departments.Select(d => new { d.Id, Name = d.Division.Name + " / " + d.Name });
+    var teamTotal = Model.Divisions.Sum(d => d.Departments.Sum(dp => dp.Teams.Count));
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h1 class="h3 mb-0">@T["org.title"]</h1>
+    <div class="d-flex flex-wrap gap-2 small">
+        <span class="badge text-bg-light border">@T["org.count.division"] @Model.Divisions.Count</span>
+        <span class="badge text-bg-light border">@T["org.count.department"] @Model.Departments.Count</span>
+        <span class="badge text-bg-light border">@T["org.count.team"] @teamTotal</span>
+        <span class="badge text-bg-light border">@T["org.count.role"] @Model.Roles.Count</span>
+        <span class="badge text-bg-light border">@T["org.count.subRole"] @Model.SubRoles.Count</span>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
+    </div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- ================= ผังโครงสร้าง ================= -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">@T["org.chart"]</div>
+            <div class="card-body">
+                @if (!Model.Divisions.Any())
+                {
+                    <p class="text-muted mb-0">@T["org.emptyChart"]</p>
+                }
+
+                @foreach (var division in Model.Divisions)
+                {
+                    <div class="mb-3">
+                        <!-- ฝ่าย -->
+                        <div class="d-flex align-items-center justify-content-between py-1">
+                            <div class="fw-semibold">
+                                @T["org.unit.division"]: @division.Name
+                                <span class="text-muted small ms-1">@string.Format(T["org.departmentCount"], division.Departments.Count)</span>
+                            </div>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#ren-div-@division.Id">@T["btn.edit"]</button>
+                                <form asp-action="DeleteDivision" method="post" class="d-inline"
+                                      onsubmit="return confirm(@(Json.Serialize(string.Format(T["org.confirm.deleteDivision"], division.Name))));">
+                                    <input type="hidden" name="id" value="@division.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["btn.delete"]</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="collapse mb-2" id="ren-div-@division.Id">
+                            <form asp-action="RenameDivision" method="post" class="d-flex gap-2">
+                                <input type="hidden" name="id" value="@division.Id" />
+                                <input name="name" class="form-control form-control-sm" value="@division.Name" maxlength="100" required />
+                                <button type="submit" class="btn btn-sm btn-primary text-nowrap">@T["btn.save"]</button>
+                            </form>
+                        </div>
+
+                        @foreach (var dep in division.Departments)
+                        {
+                            <!-- แผนก -->
+                            <div class="ms-4 ps-3 border-start">
+                                <div class="d-flex align-items-center justify-content-between py-1">
+                                    <div>
+                                        @T["org.unit.department"]: @dep.Name
+                                        <span class="text-muted small ms-1">@string.Format(T["org.teamCount"], dep.Teams.Count)</span>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#ren-dep-@dep.Id">@T["btn.edit"]</button>
+                                        <form asp-action="DeleteDepartment" method="post" class="d-inline"
+                                              onsubmit="return confirm(@(Json.Serialize(string.Format(T["org.confirm.deleteDepartment"], dep.Name))));">
+                                            <input type="hidden" name="id" value="@dep.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["btn.delete"]</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="collapse mb-2" id="ren-dep-@dep.Id">
+                                    <form asp-action="RenameDepartment" method="post" class="d-flex gap-2">
+                                        <input type="hidden" name="id" value="@dep.Id" />
+                                        <input name="name" class="form-control form-control-sm" value="@dep.Name" maxlength="100" required />
+                                        <button type="submit" class="btn btn-sm btn-primary text-nowrap">@T["btn.save"]</button>
+                                    </form>
+                                </div>
+
+                                @foreach (var team in dep.Teams)
+                                {
+                                    <!-- ทีม -->
+                                    <div class="ms-4 ps-3 border-start">
+                                        <div class="d-flex align-items-center justify-content-between py-1">
+                                            <div>@T["org.unit.team"]: @team.Name</div>
+                                            <div class="d-flex gap-1">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#ren-team-@team.Id">@T["btn.edit"]</button>
+                                                <form asp-action="DeleteTeam" method="post" class="d-inline"
+                                                      onsubmit="return confirm(@(Json.Serialize(string.Format(T["org.confirm.deleteTeam"], team.Name))));">
+                                                    <input type="hidden" name="id" value="@team.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["btn.delete"]</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        <div class="collapse mb-2" id="ren-team-@team.Id">
+                                            <form asp-action="RenameTeam" method="post" class="d-flex gap-2">
+                                                <input type="hidden" name="id" value="@team.Id" />
+                                                <input name="name" class="form-control form-control-sm" value="@team.Name" maxlength="100" required />
+                                                <button type="submit" class="btn btn-sm btn-primary text-nowrap">@T["btn.save"]</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <hr class="my-2" />
+                }
+            </div>
+        </div>
+
+        <!-- ตำแหน่งและความสัมพันธ์ -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">@T["org.section.rolesAndRelations"]</div>
+            <div class="card-body">
+                <h3 class="h6 text-muted">@T["org.section.roles"]</h3>
+                @if (!Model.Roles.Any())
+                {
+                    <p class="text-muted small">@T["org.noRoles"]</p>
+                }
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <span class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3">
+                            @role.Name
+                            <form asp-action="DeleteRole" method="post" class="d-inline"
+                                  onsubmit="return confirm(@(Json.Serialize(string.Format(T["org.confirm.deleteRole"], role.Name))));">
+                                <input type="hidden" name="id" value="@role.Id" />
+                                <button type="submit" class="btn-close btn-close-white" style="font-size:.6rem" aria-label="@T["btn.delete"]"></button>
+                            </form>
+                        </span>
+                    }
+                </div>
+
+                <h3 class="h6 text-muted">@T["org.section.subRoles"]</h3>
+                @if (!Model.SubRoles.Any())
+                {
+                    <p class="text-muted small mb-0">@T["org.noSubRoles"]</p>
+                }
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var sub in Model.SubRoles)
+                    {
+                        <span class="badge text-bg-info d-inline-flex align-items-center gap-2 py-2 px-3">
+                            @sub.Name
+                            @if (sub.Role is not null)
+                            {
+                                <small class="opacity-75">· @sub.Role.Name</small>
+                            }
+                            <form asp-action="DeleteSubRole" method="post" class="d-inline"
+                                  onsubmit="return confirm(@(Json.Serialize(string.Format(T["org.confirm.deleteSubRole"], sub.Name))));">
+                                <input type="hidden" name="id" value="@sub.Id" />
+                                <button type="submit" class="btn-close btn-close-white" style="font-size:.6rem" aria-label="@T["btn.delete"]"></button>
+                            </form>
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= เพิ่มข้อมูล (แท็บ) ================= -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <ul class="nav nav-pills small" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-div" type="button">@T["org.unit.division"]</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-dep" type="button">@T["org.unit.department"]</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-team" type="button">@T["org.unit.team"]</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-role" type="button">@T["org.section.roles"]</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-sub" type="button">@T["org.section.subRoles"]</button></li>
+                </ul>
+            </div>
+            <div class="card-body tab-content">
+                <!-- ฝ่าย -->
+                <div class="tab-pane fade show active" id="tab-div">
+                    <form asp-action="CreateDivision" method="post">
+                        <label class="form-label fw-semibold">@T["org.field.divisionName"]</label>
+                        <input name="name" class="form-control mb-1" maxlength="100" required placeholder="@T["org.ph.division"]" />
+                        <div class="form-text mb-3">@T["org.hint.division"]</div>
+                        <button type="submit" class="btn btn-primary w-100">@T["org.add.division"]</button>
+                    </form>
+                </div>
+
+                <!-- แผนก -->
+                <div class="tab-pane fade" id="tab-dep">
+                    @if (!Model.Divisions.Any())
+                    {
+                        <div class="alert alert-warning small mb-0">@T["org.alert.needDivision"]</div>
+                    }
+                    else
+                    {
+                        <form asp-action="CreateDepartment" method="post">
+                            <label class="form-label fw-semibold">@T["org.field.inDivision"]</label>
+                            <select name="divisionId" class="form-select mb-3" required asp-items="@(new SelectList(Model.Divisions, "Id", "Name"))">
+                                <option value="">@T["org.select.division"]</option>
+                            </select>
+                            <label class="form-label fw-semibold">@T["org.field.departmentName"]</label>
+                            <input name="name" class="form-control mb-1" maxlength="100" required placeholder="@T["org.ph.department"]" />
+                            <div class="form-text mb-3">@T["org.hint.department"]</div>
+                            <button type="submit" class="btn btn-primary w-100">@T["org.add.department"]</button>
+                        </form>
+                    }
+                </div>
+
+                <!-- ทีม -->
+                <div class="tab-pane fade" id="tab-team">
+                    @if (!deptItems.Any())
+                    {
+                        <div class="alert alert-warning small mb-0">@T["org.alert.needDepartment"]</div>
+                    }
+                    else
+                    {
+                        <form asp-action="CreateTeam" method="post">
+                            <label class="form-label fw-semibold">@T["org.field.inDepartment"]</label>
+                            <select name="departmentId" class="form-select mb-3" required asp-items="@(new SelectList(deptItems, "Id", "Name"))">
+                                <option value="">@T["org.select.department"]</option>
+                            </select>
+                            <label class="form-label fw-semibold">@T["org.field.teamName"]</label>
+                            <input name="name" class="form-control mb-1" maxlength="100" required placeholder="@T["org.ph.team"]" />
+                            <div class="form-text mb-3">@T["org.hint.team"]</div>
+                            <button type="submit" class="btn btn-primary w-100">@T["org.add.team"]</button>
+                        </form>
+                    }
+                </div>
+
+                <!-- ตำแหน่ง -->
+                <div class="tab-pane fade" id="tab-role">
+                    <form asp-action="CreateRole" method="post">
+                        <label class="form-label fw-semibold">@T["field.roleName"]</label>
+                        <input name="name" class="form-control mb-1" maxlength="100" required placeholder="@T["org.ph.role"]" />
+                        <div class="form-text mb-3">@T["org.hint.role"]</div>
+                        <button type="submit" class="btn btn-primary w-100">@T["org.add.role"]</button>
+                    </form>
+                </div>
+
+                <!-- ความสัมพันธ์ -->
+                <div class="tab-pane fade" id="tab-sub">
+                    <form asp-action="CreateSubRole" method="post">
+                        <label class="form-label fw-semibold">@T["field.subRoleName"]</label>
+                        <input name="name" class="form-control mb-3" maxlength="100" required placeholder="@T["field.subRolePlaceholder"]" />
+                        <label class="form-label fw-semibold">@T["field.linkedRole"] <span class="text-muted small">@T["field.optional"]</span></label>
+                        <select name="roleId" class="form-select mb-1" asp-items="@(new SelectList(Model.Roles, "Id", "Name"))">
+                            <option value="">@T["option.notLinked"]</option>
+                        </select>
+                        <div class="form-text mb-3">@T["org.hint.subRole"]</div>
+                        <button type="submit" class="btn btn-primary w-100">@T["org.add.subRole"]</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

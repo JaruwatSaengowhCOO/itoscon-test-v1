@@ -1,26 +1,22 @@
 @model itoscon.Models.Contact
+@inject itoscon.Services.IStaticText T
 @{
-    ViewData["Title"] = "ลบข้อมูล";
+    ViewData["Title"] = T["contacts.delete"];
+    var isSelf = Model.Id.ToString() == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
-<h1 class="h3 mb-3">ลบข้อมูลผู้ติดต่อ</h1>
+<h1 class="h3 mb-3">@T["contacts.delete"]</h1>
 
-<div class="alert alert-danger" style="max-width: 720px">ต้องการลบข้อมูลนี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้</div>
+<div class="card card-body shadow-sm" style="max-width: 560px">
+    <p class="mb-3">@T["contacts.deleteConfirm"] <strong>@Model.FirstName @Model.LastName</strong></p>
 
-<div class="card card-body" style="max-width: 720px">
-    <dl class="row mb-0">
-        <dt class="col-sm-3">@Html.DisplayNameFor(m => m.FirstName)</dt>
-        <dd class="col-sm-9">@Model.FirstName</dd>
-        <dt class="col-sm-3">@Html.DisplayNameFor(m => m.LastName)</dt>
-        <dd class="col-sm-9">@Model.LastName</dd>
-        <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Phone)</dt>
-        <dd class="col-sm-9">@Model.Phone</dd>
-        <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Email)</dt>
-        <dd class="col-sm-9">@Model.Email</dd>
-    </dl>
+    @if (isSelf)
+    {
+        <div class="alert alert-warning">@T["err.cannotDeleteSelf"]</div>
+    }
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger" disabled="@isSelf">@T["btn.confirmDelete"]</button>
+        <a asp-action="Index" class="btn btn-secondary">@T["btn.cancel"]</a>
+    </form>
 </div>
-
-<form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="mt-3">
-    <button type="submit" class="btn btn-danger">ยืนยันการลบ</button>
-    <a asp-action="Index" class="btn btn-secondary">ยกเลิก</a>
-</form>

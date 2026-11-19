@@ -1,34 +1,122 @@
 @model itoscon.Models.Contact
+@inject itoscon.Services.IStaticText T
+@{
+    var divisions = (SelectList)ViewData["Divisions"]!;
+    var departments = (List<itoscon.Models.OrgOption>)ViewData["Departments"]!;
+    var teams = (List<itoscon.Models.OrgOption>)ViewData["Teams"]!;
+    var selDiv = ViewData["SelDivisionId"] as int?;
+    var selDep = ViewData["SelDepartmentId"] as int?;
+    var showPassword = ViewData["ShowPassword"] as bool? == true;
+    var passwordOptional = ViewData["PasswordOptional"] as bool? == true;
+}
 
 <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-<div class="row g-3">
+<h2 class="h6 text-muted">@T["section.personal"]</h2>
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <label asp-for="FirstName" class="form-label"></label>
+        <label class="form-label" for="FirstName">@T["field.firstName"]</label>
         <input asp-for="FirstName" class="form-control" autofocus />
         <span asp-validation-for="FirstName" class="text-danger small"></span>
     </div>
     <div class="col-md-6">
-        <label asp-for="LastName" class="form-label"></label>
+        <label class="form-label" for="LastName">@T["field.lastName"]</label>
         <input asp-for="LastName" class="form-control" />
         <span asp-validation-for="LastName" class="text-danger small"></span>
     </div>
     <div class="col-md-6">
-        <label asp-for="Phone" class="form-label"></label>
+        <label class="form-label" for="Phone">@T["field.phone"]</label>
         <input asp-for="Phone" class="form-control" type="tel" inputmode="numeric" placeholder="0812345678" />
         <span asp-validation-for="Phone" class="text-danger small"></span>
     </div>
     <div class="col-md-6">
-        <label asp-for="Email" class="form-label"></label>
+        <label class="form-label" for="Email">@T["field.email"]</label>
         <input asp-for="Email" class="form-control" placeholder="name@example.com" />
         <span asp-validation-for="Email" class="text-danger small"></span>
     </div>
-    @if (ViewData["ShowPassword"] as bool? == true)
+    @if (showPassword)
     {
         <div class="col-md-6">
-            <label asp-for="Password" class="form-label"></label>
-            <input asp-for="Password" class="form-control" autocomplete="new-password" />
+            <label class="form-label" for="Password">
+                @T["field.password"]
+                @if (passwordOptional)
+                {
+                    <small class="text-muted">@T["field.passwordOptionalHint"]</small>
+                }
+            </label>
+            <input asp-for="Password" class="form-control" autocomplete="new-password" value="" />
             <span asp-validation-for="Password" class="text-danger small"></span>
         </div>
     }
 </div>
+
+<h2 class="h6 text-muted">@T["section.work"] <small>@T["section.workHint"]</small></h2>
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label" for="DivisionId">@T["field.division"]</label>
+        <select id="DivisionId" class="form-select">
+            <option value="">@T["option.selectDivision"]</option>
+            @foreach (var d in divisions)
+            {
+                <option value="@d.Value" selected="@(d.Value == selDiv?.ToString())">@d.Text</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="DepartmentId">@T["field.department"]</label>
+        <select id="DepartmentId" class="form-select">
+            <option value="">@T["option.selectDepartment"]</option>
+            @foreach (var d in departments)
+            {
+                <option value="@d.Id" data-parent="@d.ParentId" selected="@(d.Id == selDep)">@d.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="TeamId">@T["field.team"]</label>
+        <select asp-for="TeamId" class="form-select">
+            <option value="">@T["option.selectTeam"]</option>
+            @foreach (var tm in teams)
+            {
+                <option value="@tm.Id" data-parent="@tm.ParentId" selected="@(Model.TeamId == tm.Id)">@tm.Name</option>
+            }
+        </select>
+        <span asp-validation-for="TeamId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between">
+            <label class="form-label" for="RoleId">@T["field.role"]</label>
+        </div>
+        <select asp-for="RoleId" class="form-select" asp-items="@((SelectList)ViewData["Roles"]!)">
+            <option value="">@T["option.none"]</option>
+        </select>
+        <span asp-validation-for="RoleId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="SubRoleId">@T["field.subRole"]</label>
+        <select asp-for="SubRoleId" class="form-select" asp-items="@((SelectList)ViewData["SubRoles"]!)">
+            <option value="">@T["option.noneRelation"]</option>
+        </select>
+        <span asp-validation-for="SubRoleId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="ManagerId">@T["field.manager"]</label>
+        <select asp-for="ManagerId" class="form-select" asp-items="@((SelectList)ViewData["Managers"]!)">
+            <option value="">@T["option.noManager"]</option>
+        </select>
+        <span asp-validation-for="ManagerId" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="Salary">@T["field.salary"]</label>
+        <input asp-for="Salary" class="form-control" type="number" step="0.01" min="0" placeholder="0.00" />
+        <span asp-validation-for="Salary" class="text-danger small"></span>
+    </div>
+</div>
+
+<script src="~/js/org-select.js" asp-append-version="true"></script>

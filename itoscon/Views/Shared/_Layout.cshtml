@@ -1,66 +1,92 @@
-﻿<!DOCTYPE html>
-<html lang="th">
+﻿@inject itoscon.Services.IStaticText T
+@{
+    var isLoginPage = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Authent", StringComparison.OrdinalIgnoreCase)
+                      && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Login", StringComparison.OrdinalIgnoreCase);
+    var isEnglish = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - itoscon</title>
+    <title>@(ViewData["Title"] is string title ? $"{title} - " : "")@T["app.title"]</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/itoscon.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Contacts" asp-action="Index">itoscon</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Contacts" asp-action="Index">รายชื่อผู้ติดต่อ</a>
-                            </li>
-                        }
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item"><span class="nav-link text-muted">@User.Identity.Name</span></li>
-                            <li class="nav-item">
-                                <form asp-controller="Authent" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-link nav-link text-dark">ออกจากระบบ</button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Authent" asp-action="Login">เข้าสู่ระบบ</a>
-                            </li>
-                        }
-                    </ul>
+<body class="d-flex flex-column min-vh-100 bg-light">
+    <nav class="navbar navbar-expand-md navbar-light bg-white border-bottom shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-semibold" asp-controller="Contacts" asp-action="Index">@T["app.title"]</a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto">
+                    @if (isAuthenticated)
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-controller="Contacts" asp-action="Index">@T["menu.contacts"]</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Organization" asp-action="Index">@T["menu.organization"]</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Roles" asp-action="Index">@T["menu.roles"]</a></li>
+                    }
+                </ul>
+
+                <div class="d-flex align-items-center flex-wrap gap-3">
+                    <!-- กลุ่มผู้ใช้: ชื่อ แล้วตามด้วยปุ่มออกจากระบบ -->
+                    @if (isAuthenticated)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted text-truncate d-none d-lg-inline" style="max-width: 160px;">@User.Identity!.Name</span>
+                            <form asp-controller="Authent" asp-action="Logout" method="post" class="mb-0">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["menu.logout"]</button>
+                            </form>
+                        </div>
+                    }
+                    else if (!isLoginPage)
+                    {
+                        <a class="btn btn-sm btn-primary" asp-controller="Authent" asp-action="Login">@T["menu.login"]</a>
+                    }
+
+                    @if (isAuthenticated || !isLoginPage)
+                    {
+                        <div class="vr d-none d-md-block"></div>
+                    }
+
+                    <!-- กลุ่มสวิตช์ภาษา: ซ้าย = ไทย, ขวา = English (ขนาดเล็ก) -->
+                    <form asp-controller="Language" asp-action="Set" method="post" id="langForm" class="d-flex align-items-center gap-1 mb-0">
+                        <input type="hidden" name="culture" id="langCulture" value="@(isEnglish ? "en-US" : "th-TH")" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                        <span class="small @(isEnglish ? "text-muted" : "fw-semibold")" style="font-size: .75rem;">ไทย</span>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="langSwitch"
+                                   style="cursor:pointer; transform: scale(.8);" @(isEnglish ? "checked" : "") />
+                        </div>
+                        <span class="small @(isEnglish ? "fw-semibold" : "text-muted")" style="font-size: .75rem;">EN</span>
+                    </form>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+        </div>
+    </nav>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2569 - itoscon
+    <main class="container-fluid px-4 py-4 flex-grow-1">
+        @RenderBody()
+    </main>
+
+    <footer class="border-top bg-white text-muted small py-3">
+        <div class="container-fluid px-4 d-flex justify-content-between flex-wrap gap-2">
+            <span>&copy; @DateTime.Now.Year - @T["app.title"]</span>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/language-switch.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
