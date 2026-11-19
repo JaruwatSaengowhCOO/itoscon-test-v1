@@ -17,11 +17,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Contact>(e =>
         {
             e.Property(c => c.Salary).HasPrecision(18, 2);
+            // เก็บ hash ของรหัสผ่าน (ยาวกว่ารหัสผ่านดิบ) จึงไม่ใช้ความยาวจาก [StringLength] ของฟอร์ม
+            e.Property(c => c.Password).HasMaxLength(256);
             e.HasOne(c => c.Team).WithMany().HasForeignKey(c => c.TeamId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.Role).WithMany().HasForeignKey(c => c.RoleId).OnDelete(DeleteBehavior.SetNull);
             // ห้ามลบความสัมพันธ์ที่ยังมีพนักงานใช้อยู่
             e.HasOne(c => c.SubRole).WithMany().HasForeignKey(c => c.SubRoleId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(c => c.Manager).WithMany(c => c.Subordinates).HasForeignKey(c => c.ManagerId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.Manager).WithMany(c => c.Subordinates).HasForeignKey(c => c.ManagerId).OnDelete(DeleteBehavior.ClientSetNull);
+            // ↑ SQL Server ไม่รองรับ ON DELETE SET NULL บน FK ที่อ้างอิงตารางตัวเอง
+            //   จึงให้ EF ตั้ง ManagerId = null ฝั่งแอปแทน (ดู ContactsController.DeleteConfirmed)
         });
 
         // ลบฝ่าย/แผนกที่ยังมีแผนก/ทีมอยู่ไม่ได้

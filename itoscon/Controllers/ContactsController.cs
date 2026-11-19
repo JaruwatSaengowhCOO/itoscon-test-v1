@@ -161,7 +161,8 @@ public class ContactsController(AppDbContext db, IStaticText t) : Controller
         var contact = await db.Contacts.FindAsync(id);
         if (contact is not null)
         {
-            // ลูกน้องที่มีหัวหน้าคนนี้จะถูกตั้งหัวหน้าเป็นว่าง (ตาม OnDelete SetNull)
+            // ลูกน้องที่มีหัวหน้าคนนี้จะถูกตั้งหัวหน้าเป็นว่าง (ClientSetNull: ต้องโหลดลูกน้องให้ EF ติดตามก่อนลบ)
+            await db.Contacts.Where(c => c.ManagerId == id).LoadAsync();
             db.Contacts.Remove(contact);
             await db.SaveChangesAsync();
             TempData["Message"] = string.Format(t["msg.contactDeleted"], $"{contact.FirstName} {contact.LastName}");

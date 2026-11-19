@@ -19,7 +19,8 @@ builder.Services.AddControllersWithViews()
 builder.Services.Configure<Microsoft.Extensions.WebEncoders.WebEncoderOptions>(o =>
     o.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.All));
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default"),
+        sql => sql.EnableRetryOnFailure()));
 
 // Cookie authentication: ถ้ายังไม่ login จะถูกส่งไปหน้า Login
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -65,12 +66,11 @@ builder.Services.AddSingleton<itoscon.Services.IStaticText, itoscon.Services.Sta
 var app = builder.Build();
 Loc.Current = app.Services.GetRequiredService<IStaticText>();
 
-// สร้างฐานข้อมูล, เพิ่มคอลัมน์ Password ถ้ายังไม่มี, และสร้างผู้ดูแลเริ่มต้น (ถ้าตั้งค่าไว้)
+// สร้าง/อัปเดตฐานข้อมูลด้วย EF Core Migrations และสร้างผู้ดูแลเริ่มต้น (ถ้าตั้งค่าไว้)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-    DbInitializer.EnsureSchema(db);
+    db.Database.Migrate();
     DbInitializer.SeedInitialAdmin(db, builder.Configuration);
 }
 

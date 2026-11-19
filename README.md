@@ -7,7 +7,7 @@
 
 ## เทคโนโลยี
 - ASP.NET Core MVC (.NET 10)
-- Entity Framework Core + SQLite (ไฟล์ `contacts.db` สร้างอัตโนมัติตอนรันครั้งแรก ไม่ต้องติดตั้ง DB server)
+- Entity Framework Core + Microsoft SQL Server (โครงสร้างตารางจัดการด้วย EF Core Migrations ในโฟลเดอร์ `itoscon/Migrations` — แอปจะรัน migration ให้อัตโนมัติตอนเริ่ม)
 - Bootstrap 5
 
 ## โครงสร้าง MVC
@@ -29,6 +29,25 @@ cd itoscon
 dotnet run --project itoscon
 ```
 แล้วเปิด URL ที่ขึ้นใน terminal (เช่น `https://localhost:7xxx`) หรือเปิด `itoscon.slnx` ใน Visual Studio แล้วกด F5
+
+### ฐานข้อมูล (SQL Server)
+ค่าเริ่มต้นใน `appsettings.json` ใช้ **SQL Server LocalDB** (`(localdb)\MSSQLLocalDB`, ฐานข้อมูลชื่อ `itoscon`) ซึ่งติดมากับ Visual Studio
+ถ้าใช้ SQL Server ตัวอื่น ให้ override connection string ด้วย user-secrets (ไม่ต้องแก้ไฟล์ที่ commit):
+```bash
+dotnet user-secrets --project itoscon set "ConnectionStrings:Default" "Server=localhost,1433;Database=itoscon;User Id=sa;Password=<รหัสผ่าน>;TrustServerCertificate=True"
+```
+
+### Docker
+ตั้ง `MSSQL_SA_PASSWORD` ใน `.env` (ยาว ≥ 8 ตัว มีตัวพิมพ์ใหญ่/เล็ก/ตัวเลข/สัญลักษณ์) แล้วรัน `docker compose up --build`
+จะได้ SQL Server 2022 (service `db`) + เว็บที่ http://localhost:8080
+
+### เปลี่ยนโครงสร้างตาราง (Migrations)
+แก้ Model / `AppDbContext` แล้วสร้าง migration ใหม่ (ใช้ dotnet-ef จาก tool manifest ของ repo):
+```bash
+dotnet tool restore
+dotnet ef migrations add <ชื่อการเปลี่ยนแปลง> --project itoscon
+```
+commit ไฟล์ในโฟลเดอร์ `itoscon/Migrations` ด้วยทุกครั้ง
 
 ---
 

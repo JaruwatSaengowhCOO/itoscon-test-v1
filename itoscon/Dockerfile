@@ -16,12 +16,9 @@ WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production
 
-# สร้างโฟลเดอร์สำหรับ SQLite และโอนสิทธิ์ให้ user ที่ไม่ใช่ root เขียนไฟล์ได้
-RUN mkdir -p /app/data && chown -R $APP_UID:$APP_UID /app/data
 
 COPY --from=build /app/publish .
 
-VOLUME ["/app/data"]
 EXPOSE 8080
 
 USER $APP_UID
