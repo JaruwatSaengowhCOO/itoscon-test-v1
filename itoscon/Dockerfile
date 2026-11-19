@@ -1,30 +1,28 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-
-# This stage is used to build the service project
+# ---------- build ----------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
 COPY ["itoscon/itoscon.csproj", "itoscon/"]
-RUN dotnet restore "./itoscon/itoscon.csproj"
+RUN dotnet restore "itoscon/itoscon.csproj"
+
 COPY . .
-WORKDIR "/src/itoscon"
-RUN dotnet build "./itoscon.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR /src/itoscon
+RUN dotnet publish "itoscon.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# This stage is used to publish the service project to be copied to the final stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./itoscon.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base AS final
+# ---------- runtime ----------
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    ASPNETCORE_ENVIRONMENT=Production
+
+# สร้างโฟลเดอร์สำหรับ SQLite และโอนสิทธิ์ให้ user ที่ไม่ใช่ root เขียนไฟล์ได้
+RUN mkdir -p /app/data && chown -R $APP_UID:$APP_UID /app/data
+
+COPY --from=build /app/publish .
+
+VOLUME ["/app/data"]
+EXPOSE 8080
+
+USER $APP_UID
 ENTRYPOINT ["dotnet", "itoscon.dll"]

@@ -1,0 +1,23 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: itoscon/Dockerfile
+    image: itoscon:latest
+    ports:
+      - "8080:8080"
+    environment:
+      # ฐานข้อมูลอยู่ใน volume เพื่อไม่ให้หายเมื่อ rebuild container
+      ConnectionStrings__Default: "Data Source=/app/data/contacts.db"
+      # ผู้ดูแลคนแรก (ใช้ได้เฉพาะตอนตารางพนักงานว่าง)
+      InitialAdmin__Email: ${INITIAL_ADMIN_EMAIL:-}
+      InitialAdmin__Password: ${INITIAL_ADMIN_PASSWORD:-}
+      # ใช้ Development สำหรับทดสอบบน http://localhost:8080
+      # ถ้าขึ้น production ให้ตั้งเป็น Production และวางหลัง reverse proxy ที่เป็น HTTPS
+      ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - itoscon-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  itoscon-data:
