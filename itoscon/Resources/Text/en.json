@@ -27,7 +27,7 @@
   "contacts.deleteConfirm": "Are you sure you want to delete",
   "contacts.empty": "No data yet. Click \"+ Add contact\" to start.",
   "contacts.noResult": "No matching results.",
-  "contacts.searchPlaceholder": "Search name, phone, or email",
+  "contacts.searchPlaceholder": "Search items",
 
   "field.fullName": "Full name",
   "field.firstName": "First name",
@@ -174,5 +174,13 @@
   "option.selectDivision": "— Select division —",
   "option.selectDepartment": "— Select department —",
   "option.selectTeam": "— Select team —",
-  "section.workHint": "Choose division, department and team from the existing lists"
+  "section.workHint": "Choose division, department and team from the existing lists",
+  "filter.all": "All",
+  "paging.perPageLabel": "Per page",
+  "paging.total": "{0} contacts in total",
+  "paging.showing": "Showing {0}–{1}",
+  "paging.pageOf": "Page {0} of {1}",
+  "paging.prev": "Previous",
+  "paging.next": "Next",
+  "field.No": "No."
 }

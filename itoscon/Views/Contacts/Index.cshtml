@@ -1,9 +1,14 @@
-@model IEnumerable<itoscon.Models.Contact>
+@model itoscon.Models.ContactListViewModel
 @inject itoscon.Services.IStaticText T
 @{
     ViewData["Title"] = T["contacts.title"];
-    var search = ViewData["Search"] as string;
-    var i = 1;
+    var fromNo = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
+    var toNo = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+
+    // route ของหัวคอลัมน์ (คำนวณไว้ก่อนเพื่อหลีกเลี่ยงเครื่องหมาย " ซ้อนในแอตทริบิวต์)
+    var routeName = Model.SortRoute("name");
+    var routeTeam = Model.SortRoute("team");
+    var routeSalary = Model.SortRoute("salary");
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -11,81 +16,126 @@
     <a asp-action="Create" class="btn btn-primary">@T["btn.addContact"]</a>
 </div>
 
-<form method="get" class="row g-2 mb-3">
-    <div class="col-md-6 col-lg-4">
-        <input type="search" name="search" value="@search" class="form-control" placeholder="@T["contacts.searchPlaceholder"]" />
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-outline-secondary">@T["btn.search"]</button>
-    </div>
-    @if (!string.IsNullOrEmpty(search))
-    {
-        <div class="col-auto">
-            <a asp-action="Index" class="btn btn-link">@T["btn.clear"]</a>
-        </div>
-    }
-</form>
-
 @if (TempData["Message"] is string message)
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         @message
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
     </div>
 }
 @if (TempData["Error"] is string error)
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         @error
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["btn.close"]"></button>
     </div>
 }
+
+<!-- ตัวกรองและค้นหา (ส่งด้วย GET เสมอ จึงกลับหน้าแรกทุกครั้งที่กรอง) -->
+<form method="get" class="card card-body border-0 shadow-sm mb-3">
+    <input type="hidden" name="sort" value="@Model.Sort" />
+    <input type="hidden" name="desc" value="@(Model.Desc ? "true" : "false")" />
+
+    <div class="row g-2 align-items-end">
+        <div class="col-lg-4">
+            <input type="search" name="search" value="@Model.Search" class="form-control"
+                   placeholder="@T["contacts.searchPlaceholder"]" />
+        </div>
+        <div class="col-md-6 col-lg-2">
+            <select name="divisionId" class="form-select" asp-items="Model.Divisions">
+                <option value="">@T["field.division"]: @T["filter.all"]</option>
+            </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+            <select name="departmentId" class="form-select" asp-items="Model.Departments">
+                <option value="">@T["field.department"]: @T["filter.all"]</option>
+            </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+            <select name="teamId" class="form-select" asp-items="Model.Teams">
+                <option value="">@T["field.team"]: @T["filter.all"]</option>
+            </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+            <select name="roleId" class="form-select" asp-items="Model.Roles">
+                <option value="">@T["field.role"]: @T["filter.all"]</option>
+            </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+            <select name="pageSize" class="form-select">
+                @foreach (var size in new[] { 10, 25, 50 })
+                {
+                    <option value="@size" selected="@(Model.PageSize == size)">@T["paging.perPageLabel"] @size</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@T["btn.search"]</button>
+            @if (Model.HasFilter)
+            {
+                <a asp-action="Index" class="btn btn-link">@T["btn.clear"]</a>
+            }
+        </div>
+    </div>
+</form>
 
 <div class="card border-0 shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
-                    <th>@T["field.fullName"]</th>
+                    <th>@T["field.No"]</th>
+                    <th>
+                        <a class="text-decoration-none text-reset" asp-action="Index" asp-all-route-data="routeName">
+                            @T["field.fullName"]@(Model.Sort == "name" ? (Model.Desc ? " ▼" : " ▲") : "")
+                        </a>
+                    </th>
                     <th>@T["field.phone"]</th>
                     <th>@T["field.email"]</th>
-                    <th>@T["field.team"]</th>
+                    <th>
+                        <a class="text-decoration-none text-reset" asp-action="Index" asp-all-route-data="routeTeam">
+                            @T["field.team"]@(Model.Sort == "team" ? (Model.Desc ? " ▼" : " ▲") : "")
+                        </a>
+                    </th>
                     <th>@T["field.role"]</th>
                     <th>@T["field.manager"]</th>
-                    <th class="text-end">@T["field.salary"]</th>
+                    <th class="text-end">
+                        <a class="text-decoration-none text-reset" asp-action="Index" asp-all-route-data="routeSalary">
+                            @T["field.salary"]@(Model.Sort == "salary" ? (Model.Desc ? " ▼" : " ▲") : "")
+                        </a>
+                    </th>
                     <th class="text-end">@T["table.actions"]</th>
                 </tr>
             </thead>
             <tbody>
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr>
                         <td colspan="9" class="text-center text-muted py-5">
-                            @(string.IsNullOrEmpty(search) ? T["contacts.empty"] : T["contacts.noResult"])
+                            @(Model.HasFilter ? T["contacts.noResult"] : T["contacts.empty"])
                         </td>
                     </tr>
                 }
-                @foreach (var c in Model)
+                @foreach (var (c, index) in Model.Items.Select((item, i) => (item, i)))
                 {
                     <tr>
-                        <td>@(i++)</td>
-                        <td class="fw-semibold">@c.FirstName @c.LastName</td>
+                        <td>@(fromNo + index)</td>
+                        <td class="fw-semibold">@c.FullName</td>
                         <td>@c.Phone</td>
                         <td><a href="mailto:@c.Email">@c.Email</a></td>
-                        <td>@(c.Team?.Name ?? "-")</td>
-                        <td>@(c.Role?.Name ?? "-")</td>
+                        <td>@(c.TeamPath ?? "-")</td>
+                        <td>@(c.RoleName ?? "-")</td>
                         <td>
-                            @if (c.Manager is null)
+                            @if (c.ManagerName is null)
                             {
                                 <span>-</span>
                             }
                             else
                             {
-                                <span>@c.Manager.FirstName @c.Manager.LastName</span>
-                                @if (c.SubRole is not null)
+                                <span>@c.ManagerName</span>
+                                @if (c.SubRoleName is not null)
                                 {
-                                    <small class="text-muted">(@c.SubRole.Name)</small>
+                                    <small class="text-muted">(@c.SubRoleName)</small>
                                 }
                             }
                         </td>
@@ -98,5 +148,27 @@
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- แถบแบ่งหน้า -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+    <div class="small text-muted">
+        @string.Format(T["paging.total"], Model.TotalCount)
+        @if (Model.TotalCount > 0)
+        {
+            <span>· @string.Format(T["paging.showing"], fromNo, toNo)</span>
+        }
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        @if (Model.Page > 1)
+        {
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-all-route-data="@Model.PageRoute(Model.Page - 1)">@T["paging.prev"]</a>
+        }
+        <span class="small">@string.Format(T["paging.pageOf"], Model.Page, Model.TotalPages)</span>
+        @if (Model.Page < Model.TotalPages)
+        {
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-all-route-data="@Model.PageRoute(Model.Page + 1)">@T["paging.next"]</a>
+        }
     </div>
 </div>

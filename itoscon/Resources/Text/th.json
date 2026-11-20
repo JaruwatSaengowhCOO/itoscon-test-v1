@@ -27,7 +27,7 @@
   "contacts.deleteConfirm": "ยืนยันการลบ",
   "contacts.empty": "ยังไม่มีข้อมูล กด \"+ เพิ่มข้อมูล\" เพื่อเริ่มต้น",
   "contacts.noResult": "ไม่พบข้อมูลที่ค้นหา",
-  "contacts.searchPlaceholder": "ค้นหาชื่อ นามสกุล เบอร์ หรืออีเมล",
+  "contacts.searchPlaceholder": "ค้นหารายการ",
 
   "field.fullName": "ชื่อ-นามสกุล",
   "field.firstName": "ชื่อ",
@@ -174,5 +174,13 @@
   "option.selectDivision": "— เลือกฝ่าย —",
   "option.selectDepartment": "— เลือกแผนก —",
   "option.selectTeam": "— เลือกทีม —",
-  "section.workHint": "เลือกฝ่าย แผนก และทีมจากรายการที่มีอยู่"
+  "section.workHint": "เลือกฝ่าย แผนก และทีมจากรายการที่มีอยู่",
+  "filter.all": "ทั้งหมด",
+  "paging.perPageLabel": "หน้าละ",
+  "paging.total": "ทั้งหมด {0} คน",
+  "paging.showing": "แสดง {0}–{1}",
+  "paging.pageOf": "หน้า {0} จาก {1}",
+  "paging.prev": "ก่อนหน้า",
+  "paging.next": "ถัดไป",
+  "field.No": "ลำดับ"
 }

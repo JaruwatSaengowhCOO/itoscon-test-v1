@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client.NativeInterop;
 using System.Security.Claims;
 
 namespace itoscon.Controllers;
@@ -18,28 +19,119 @@ public class ContactsController(AppDbContext db, IStaticText t) : Controller
 
     private readonly PasswordHasher<Contact> _hasher = new();
 
-    // GET: /Contacts
-    public async Task<IActionResult> Index(string? search)
+    // GET: /Contacts?search=&divisionId=&departmentId=&teamId=&roleId=&sort=&desc=&pageSize=&page=
+    public async Task<IActionResult> Index([FromQuery] ContactListViewModel vm)
     {
-        var query = db.Contacts.AsNoTracking()
-            .Include(c => c.Team)
-            .Include(c => c.Role)
-            .Include(c => c.SubRole)
-            .Include(c => c.Manager)
-            .AsQueryable();
+        // รับเฉพาะค่าที่อนุญาต
+        vm.Sort = vm.Sort is "name" or "lastName" or "team" or "salary" ? vm.Sort : "name";
+        vm.PageSize = vm.PageSize is 10 or 25 or 50 ? vm.PageSize : 10;
+        vm.Page = Math.Max(1, vm.Page);
+        vm.Search = vm.Search?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        // 1) ตัวกรอง: ทุกอย่างเป็น Where ที่ EF แปลเป็น SQL (ไม่ดึงข้อมูลมาคัดกรองใน C#)
+        var query = db.Contacts.AsNoTracking().AsQueryable();
+
+        // ค้นหาหลายคำ: แต่ละคำต้องตรงกับอย่างน้อยหนึ่งช่อง
+        if (!string.IsNullOrWhiteSpace(vm.Search))
         {
-            search = search.Trim();
-            query = query.Where(c =>
-                c.FirstName.Contains(search) ||
-                c.LastName.Contains(search) ||
-                c.Phone.Contains(search) ||
-                c.Email.Contains(search));
+            // รายการเงินเดือนที่ไม่ซ้ำกัน โหลดครั้งเดียวและโหลดเฉพาะเมื่อมีคำค้นที่เป็นตัวเลข
+            List<decimal?>? salaryPool = null;
+
+            foreach (var raw in vm.Search.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var term = raw; // คัดลอกค่าก่อนใช้ใน lambda
+
+                // คำค้นเป็นตัวเลขหรือไม่ (ตัด , ออกก่อน เช่น 9,000 -> 9000)
+                var digits = term.Replace(",", "");
+                var isNumeric = digits.Any(char.IsDigit) && digits.All(ch => char.IsDigit(ch) || ch == '.');
+
+                // เงินเดือนที่ตรงกับคำค้น (เก็บเป็นรายการว่างถ้าไม่ใช่ตัวเลข)
+                var salaryHits = new List<decimal?>();
+                if (isNumeric)
+                {
+                    salaryPool ??= await db.Contacts.AsNoTracking()
+                        .Where(c => c.Salary != null)
+                        .Select(c => c.Salary)
+                        .Distinct()
+                        .ToListAsync();
+
+                    salaryHits = salaryPool
+                        .Where(s => s!.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture).Contains(digits))
+                        .ToList();
+                }
+
+                var hasSalaryHit = salaryHits.Count > 0; // ป้องกัน Contains ของรายการว่าง
+
+                query = query.Where(c =>
+                    c.FirstName.Contains(term) ||
+                    c.LastName.Contains(term) ||
+                    c.Phone.Contains(term) ||
+                    c.Email.Contains(term) ||
+                    (c.Team != null && (
+                        c.Team.Name.Contains(term) ||
+                        c.Team.Department.Name.Contains(term) ||
+                        c.Team.Department.Division.Name.Contains(term))) ||
+                    (c.Role != null && c.Role.Name.Contains(term)) ||
+                    (c.SubRole != null && c.SubRole.Name.Contains(term)) ||
+                    (hasSalaryHit && salaryHits.Contains(c.Salary)));
+            }
         }
 
-        ViewData["Search"] = search;
-        return View(await query.OrderBy(c => c.Id).ToListAsync());
+        if (vm.DivisionId is int divisionId)
+            query = query.Where(c => c.Team != null && c.Team.Department.DivisionId == divisionId);
+
+        if (vm.DepartmentId is int departmentId)
+            query = query.Where(c => c.Team != null && c.Team.DepartmentId == departmentId);
+
+        if (vm.TeamId is int teamId)
+            query = query.Where(c => c.TeamId == teamId);
+
+        if (vm.RoleId is int roleId)
+            query = query.Where(c => c.RoleId == roleId);
+
+        // 2) จำนวนทั้งหมด (ก่อนแบ่งหน้า)
+        vm.TotalCount = await query.CountAsync();
+        if (vm.Page > vm.TotalPages) vm.Page = vm.TotalPages;
+
+        // 3) เรียงลำดับ: เลือกตามคอลัมน์และทิศทาง, ตัวสุดท้ายใช้ Id กันผลสลับกันเมื่อค่าเท่ากัน
+        IOrderedQueryable<Contact> ordered = vm.Sort switch
+        {
+            "lastName" => vm.Desc
+                ? query.OrderByDescending(c => c.LastName).ThenByDescending(c => c.FirstName)
+                : query.OrderBy(c => c.LastName).ThenBy(c => c.FirstName),
+            "team" => vm.Desc
+                ? query.OrderByDescending(c => c.Team!.Name)
+                : query.OrderBy(c => c.Team!.Name),
+            "salary" => vm.Desc
+                ? query.OrderByDescending(c => c.Salary)
+                : query.OrderBy(c => c.Salary),
+            _ => vm.Desc
+                ? query.OrderByDescending(c => c.FirstName).ThenByDescending(c => c.LastName)
+                : query.OrderBy(c => c.FirstName).ThenBy(c => c.LastName)
+        };
+        ordered = ordered.ThenBy(c => c.Id);
+
+        // 4) แบ่งหน้า + Select เฉพาะคอลัมน์ที่แสดง (ไม่มี Password)
+        vm.Items = await ordered
+            .Skip((vm.Page - 1) * vm.PageSize)
+            .Take(vm.PageSize)
+            .Select(c => new ContactListItem(
+                c.Id,
+                c.FirstName,
+                c.LastName,
+                c.Phone,
+                c.Email,
+                c.Team == null ? null : c.Team.Department.Division.Name,
+                c.Team == null ? null : c.Team.Department.Name,
+                c.Team == null ? null : c.Team.Name,
+                c.Role == null ? null : c.Role.Name,
+                c.Manager == null ? null : c.Manager.FirstName + " " + c.Manager.LastName,
+                c.SubRole == null ? null : c.SubRole.Name,
+                c.Salary))
+            .ToListAsync();
+
+        await LoadFilterListsAsync(vm);
+        return View(vm);
     }
 
     // GET: /Contacts/Create
@@ -268,5 +360,41 @@ public class ContactsController(AppDbContext db, IStaticText t) : Controller
             .Select(c => new { c.Id, Name = c.FirstName + " " + c.LastName })
             .ToListAsync();
         ViewData["Managers"] = new SelectList(managers, "Id", "Name");
+    }
+
+    // รายการ dropdown ของตัวกรอง (ใส่ค่าที่เลือกไว้แล้ว)
+    private async Task LoadFilterListsAsync(ContactListViewModel vm)
+    {
+        var divisions = await db.Divisions.AsNoTracking()
+            .OrderBy(d => d.Name)
+            .Select(d => new { d.Id, d.Name })
+            .ToListAsync();
+        vm.Divisions = divisions
+            .Select(d => new SelectListItem(d.Name, d.Id.ToString(), d.Id == vm.DivisionId))
+            .ToList();
+
+        var departments = await db.Departments.AsNoTracking()
+            .OrderBy(d => d.Division.Name).ThenBy(d => d.Name)
+            .Select(d => new { d.Id, d.Name, Division = d.Division.Name })
+            .ToListAsync();
+        vm.Departments = departments
+            .Select(d => new SelectListItem($"{d.Division} / {d.Name}", d.Id.ToString(), d.Id == vm.DepartmentId))
+            .ToList();
+
+        var teams = await db.Teams.AsNoTracking()
+            .OrderBy(tm => tm.Department.Division.Name).ThenBy(tm => tm.Department.Name).ThenBy(tm => tm.Name)
+            .Select(tm => new { tm.Id, tm.Name, Department = tm.Department.Name, Division = tm.Department.Division.Name })
+            .ToListAsync();
+        vm.Teams = teams
+            .Select(tm => new SelectListItem($"{tm.Division} / {tm.Department} / {tm.Name}", tm.Id.ToString(), tm.Id == vm.TeamId))
+            .ToList();
+
+        var roles = await db.Roles.AsNoTracking()
+            .OrderBy(r => r.Name)
+            .Select(r => new { r.Id, r.Name })
+            .ToListAsync();
+        vm.Roles = roles
+            .Select(r => new SelectListItem(r.Name, r.Id.ToString(), r.Id == vm.RoleId))
+            .ToList();
     }
 }
